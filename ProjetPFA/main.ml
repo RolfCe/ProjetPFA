@@ -9,6 +9,7 @@ pour centrer x+25
 
 *)
 let selectedCase = ref (-1,-1);;
+let listeSudoku = ref [];;
 
 module type Grille =
     sig
@@ -88,16 +89,25 @@ let getCase x y =
             |c -> ((c-140)/80)(*80+140*)
     in
     try
-        (checkColumn x,checkLine y)
+        (checkLine y,checkColumn x)
      with NotInSudoku -> (-1,-1)
     
 ;;
 
-let highlightCase x y tab =
+let highlightCase tab =
+    let x = fst !selectedCase in
+    let y = snd !selectedCase in
+    if (x,y) <> (-1,-1) then 
+        begin
+        Graphics.set_color (Graphics.rgb 127 0 97);
+        Graphics.fill_rect (y*80+140+1) ((8-x)*80+50+1) 78 78;
+        end;
+;;
+
+let afficheJeu tab = 
     Graphics.clear_graph ();
-    afficheSudoku tab;
-    Graphics.set_color (Graphics.rgb 127 0 97);
-    Graphics.fill_rect (x*80+140+1) ((8-y)*80+50+1) 78 78;
+    highlightCase tab;
+    trace_ligneGrille ();
     afficheSudoku tab;
 ;;
 
@@ -105,33 +115,49 @@ let setSelectedCase x y tab =
     if snd (tab.(x).(y)) then selectedCase := (x,y) else selectedCase := (-1,-1)
 ;;
 
-let setValueCase x y tab v =
-    if not (selectedCase = ref (-1,-1)) then tab.(x).(y) <- (v,true);
+let retourEnArriereGrille tab =
+    match !listeSudoku with
+        |[] -> ()
+        |h::t -> begin
+         for i=0 to 8 do
+            for j=0 to 8 do
+                tab.(i).(j) <- h.(i).(j)
+            done
+         done ;
+         listeSudoku := t
+         end
+;;
+
+let setValueCase tab v =
+    let x = fst !selectedCase in
+    let y = snd !selectedCase in
+    match v with 
+       |'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' when (x,y) <> (-1,-1)-> listeSudoku := tab::!listeSudoku;tab.(x).(y) <- (v,true)
+       |'r' -> retourEnArriereGrille tab
+       |_ -> ()
 ;;
 
 let rec eventListener grille =
     let st = wait_next_event [Graphics.Button_down; Graphics.Key_pressed] in 
-    if st.keypressed then let a = getCase st.mouse_x st.mouse_y in setValueCase (fst a) (snd a) grille st.key;
+    if st.keypressed then setValueCase grille st.key
     else 
         if st.button then 
             begin
             let a = getCase st.mouse_x st.mouse_y in
-            highlightCase (fst a) (snd a) grille;
             setSelectedCase (fst a) (snd a) grille;
             end;
     
-    
+    afficheJeu grille;
     eventListener grille
 ;;
     
 
 module S = G ;;
-let test = Array.make_matrix 9 9 ('0',true);;
+let test = Array.make_matrix 9 9 ('0',false);;
 lire_fichier "grids/grid0.txt" test;;
 
 Graphics.open_graph " 1000x1000";;
-trace_ligneGrille ();;
-afficheSudoku test;;
+afficheJeu test;;
 eventListener test;;
 
 

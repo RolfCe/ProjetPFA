@@ -10,27 +10,50 @@ pour centrer x+25
 *)
 let selectedCase = ref (-1,-1);;
 let listeSudoku = ref [];;
+let lastMove = Array.make_matrix 9 9 ('0',false);; (* Juste pour initialiser *)
 
-module type Grille =
+module type Button =
     sig
-    type t
-    val value : t
-    val set : int -> int -> (char*bool) -> unit
-    val get : int -> int -> char
-    val isChangeable : int -> int -> bool
-    end
+    val x : int
+    val y : int
+    val action : unit -> unit
+    val drawButton : unit -> unit
+    end ;;
 
-module G : Grille = struct
-    type t =  (char*bool) array array
-    let value = Array.make_matrix 9 9 ('0',true)
-    let set x y v = value.(x).(y) <- v
-    let get x y = fst value.(x).(y) 
-    let isChangeable x y = snd value.(x).(y) 
-    end
+let dessinerBouton x y text =
+    Graphics.moveto x y;
+    Graphics.set_color black;
+    Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
+    Graphics.draw_string text;
+    let lon = x-3 in
+    let la = y-1 in
+    
+    Graphics.moveto lon la;
+    Graphics.lineto ( lon + 50 ) la ; 
+    Graphics.lineto ( lon + 50 )  (la+ 25 ) ; 
+    Graphics.lineto lon (la+ 25 ) ;
+    Graphics.lineto lon la; 
+;;
 
-module type Sudoku =
-    sig
-    end
+let actionHelp () =
+    Graphics.moveto 75 950;
+    Graphics.set_color black;
+    Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
+    Graphics.draw_string "Key actions : [1-9]-Write 0-Erase s-Save l-Load r-BackTrack h-hint v-Check";
+    Graphics.moveto 115 900;
+    Graphics.draw_string "Rules : Each number can only appear once in a row, column or box";   
+;;
+
+module HelpButton : Button  =
+    struct
+    let x = 4
+    let y = 970
+    let drawButton () = dessinerBouton x y "Help" 
+    let action () = actionHelp ()
+    end;;
+
+module Help = HelpButton ;;
+
 
 let lire_fichier fichier tab =
     let cin = open_in fichier in
@@ -111,6 +134,7 @@ let highlightCase tab =
 
 let afficheJeu tab = 
     highlightCase tab;
+    Help.drawButton ();
     trace_ligneGrille ();
     afficheSudoku tab;
 ;;
@@ -219,14 +243,61 @@ let helpPlayer_addValue tab aIndex=
     addValue 0 0 tab tabSoluce  
 ;;
 
+let saveSudoku grille  =
+    let save = open_out "save/save.txt" in
+    for i = 0 to 8 do
+        for j = 0 to 8 do
+            Printf.fprintf save "%c" (fst grille.(i).(j));
+        done;
+    done;
+    close_out save
+;;
+
+let loadSudoku tab seed = 
+    let cSave = open_in "save/save.txt" in
+    let cin = open_in ("grids/grid"^seed^".txt") in
+    try
+        let line = input_line cin in
+        let lineSave = input_line cSave in
+        close_in cSave;
+        close_in cin;
+        for i = 0 to 8 do
+            for j = 0 to 8 do
+                let c = String.get line (9*i+j) in
+                let cSave = String.get lineSave (9*i+j) in
+                if Char.equal '0' c then tab.(i).(j) <- (cSave,true) else tab.(i).(j) <-(c,false);
+            done;
+        done
+    with
+        |e-> close_in_noerr cin;raise e
+;;
+
+let saveLastMove tab =
+        for i = 0 to 8 do
+            for j = 0 to 8 do
+                lastMove.(i).(j)<-tab.(i).(j) 
+            done;
+        done
+;;
+
+let loadLastMove tab =
+        for i = 0 to 8 do
+            for j = 0 to 8 do
+                tab.(i).(j)<-lastMove.(i).(j) 
+            done;
+        done    
+;;
+
 let setValueCase tab v =
     let x = fst !selectedCase in
     let y = snd !selectedCase in
     match v with 
-       |'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' when (x,y) <> (-1,-1)-> listeSudoku := tab::!listeSudoku;tab.(x).(y) <- (v,true)
-       |'r' -> retourEnArriereGrille tab
+       |'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' when (x,y) <> (-1,-1)-> saveLastMove tab;tab.(x).(y) <- (v,true)
+       |'r' -> loadLastMove tab
        |'v'-> checkAnswerCurrent tab "0"
        |'h' -> helpPlayer_addValue tab "0"
+       |'s' -> saveSudoku tab
+       |'l' -> loadSudoku tab "0"
        |_ -> ()
 ;;
 
@@ -238,16 +309,18 @@ let rec eventListener grille =
         if st.button then 
             begin
             let a = getCase st.mouse_x st.mouse_y in
-            setSelectedCase (fst a) (snd a) grille;
+            match a with
+                |(-1,-1)-> if (st.mouse_x>= Help.x) && (st.mouse_x<=Help.x+50) && (st.mouse_y>=Help.y) && (st.mouse_y<= Help.y+25) then Help.action ();
+                |_ -> setSelectedCase (fst a) (snd a) grille;
             end;
     afficheJeu grille;
     if checkSudokuIsComplete grille then checkGameWinOrLost grille "0" else eventListener grille
 ;;
     
 
-module S = G ;;
 let test = Array.make_matrix 9 9 ('0',false);;
 lire_fichier "grids/grid0.txt" test;;
+lire_fichier "grids/grid0.txt" lastMove;;
 
 Graphics.open_graph " 1000x1000";;
 afficheJeu test;;

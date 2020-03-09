@@ -1,6 +1,8 @@
 open Graphics
 open Array
 open String
+open Button
+open Menu
 
 (*
 les cases 80 pixel de coté
@@ -11,29 +13,31 @@ pour centrer x+25
 let selectedCase = ref (-1,-1);;
 let listeSudoku = ref [];;
 let lastMove = Array.make_matrix 9 9 ('0',false);; (* Juste pour initialiser *)
+let countHelp = ref 5;; 
 
-module type Button =
-    sig
-    val x : int
-    val y : int
-    val width : int
-    val height : int
-    val action : unit -> unit
-    val drawButton : unit -> unit
-    end ;;
 
-let dessinerBouton x y text =
-    Graphics.moveto x y;
+let afficheCountHelp  () =
+    Graphics.moveto 10 830;
     Graphics.set_color black;
     Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
+    Graphics.draw_string ( "count Help : "^( string_of_int ( !countHelp ) ) );
+   
+    ;;
+    
+    
+    
+let dessinerBouton x y text taille gapW gapH width height =
+    Graphics.moveto x y;
+    Graphics.set_color black;
+    Graphics.set_font ("-*-fixed-medium-r-semicondensed--"^taille^"-*-*-*-*-*-iso8859-1");
     Graphics.draw_string text;
-    let lon = x-3 in
-    let la = y-1 in
+    let lon = x - gapW in
+    let la = y - gapH in
     
     Graphics.moveto lon la;
-    Graphics.lineto ( lon + 50 ) la ; 
-    Graphics.lineto ( lon + 50 )  (la+ 25 ) ; 
-    Graphics.lineto lon (la+ 25 ) ;
+    Graphics.lineto ( lon + width ) la ; 
+    Graphics.lineto ( lon + width )  (la + height ) ; 
+    Graphics.lineto lon (la + height) ;
     Graphics.lineto lon la; 
 ;;
 
@@ -52,11 +56,12 @@ module HelpButton : Button  =
     let y = 970
     let width = 50
     let height = 25
-    let drawButton () = dessinerBouton x y "Help" 
+    let drawButton () = dessinerBouton x y "Help" "25" 3 1 width height(* Déterminer par des moyens arbitraires*)
     let action () = actionHelp ()
     end;;
 
 module Help = HelpButton ;;
+
 
 
 let lire_fichier fichier tab =
@@ -139,6 +144,7 @@ let highlightCase tab =
 let afficheJeu tab = 
     highlightCase tab;
     Help.drawButton ();
+    afficheCountHelp (); 
     trace_ligneGrille ();
     afficheSudoku tab;
 ;;
@@ -299,7 +305,7 @@ let setValueCase tab v =
        |'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' when (x,y) <> (-1,-1)-> saveLastMove tab;tab.(x).(y) <- (v,true)
        |'r' -> loadLastMove tab
        |'v'-> checkAnswerCurrent tab "0"
-       |'h' -> helpPlayer_addValue tab "0"
+       |'h' -> if !countHelp > 0 then begin  countHelp := !countHelp -1 ;  helpPlayer_addValue tab "0" end 
        |'s' -> saveSudoku tab
        |'l' -> loadSudoku tab "0"
        |_ -> ()
@@ -332,5 +338,59 @@ let main () =
 
 ;;
 
-main ();;
+let loadGame () =
+
+    let test = Array.make_matrix 9 9 ('0',false) in
+    loadSudoku test "0";
+    loadSudoku lastMove "0";
+    Graphics.open_graph " 1000x1000";
+    afficheJeu test;
+    eventListener test
+
+;;
+
+module NewGameButton : Button =
+    struct
+    let x = 425
+    let y = 525
+    let width = 275
+    let height = 100
+    let action () = main ()
+    let drawButton () = dessinerBouton x y "START !!" "50" 50 25 width height
+    end;;
+
+module LoadButton : Button =
+    struct
+    let x = 425
+    let y = 175
+    let width = 200
+    let height = 100
+    let action () = loadGame ()
+    let drawButton () = dessinerBouton x y "LOAD..." "50" 25 25 width height
+    end;;
+
+module NewGame = NewGameButton ;;
+module Load = LoadButton ;;
+
+let rec menuEventlistener () = let st = wait_next_event [Graphics.Button_down] in 
+        if st.button then 
+            begin
+            if (st.mouse_x >= Load.x) && (st.mouse_x <= Load.x + Load.width) && (st.mouse_y >= Load.y) && (st.mouse_y <= Load.y + Load.height) then Load.action ()
+            else if (st.mouse_x >= NewGame.x) && (st.mouse_x <= NewGame.x + NewGame.width) && (st.mouse_y >= NewGame.y) && (st.mouse_y <= NewGame.y + NewGame.height)          
+                    then   NewGame.action ()
+            else menuEventlistener ()
+            end
+            
+
+
+module MenuStart : Menu =
+    struct
+    let eventListenerBouton () =  menuEventlistener () 
+    let affichage () = Graphics.open_graph " 1000x1000";NewGame.drawButton (); Load.drawButton () 
+    end;;
+
+module ElMenu = MenuStart;;
+
+ElMenu.affichage ();;
+ElMenu.eventListenerBouton ();;
 

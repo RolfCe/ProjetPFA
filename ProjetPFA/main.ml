@@ -16,6 +16,8 @@ module type Button =
     sig
     val x : int
     val y : int
+    val width : int
+    val height : int
     val action : unit -> unit
     val drawButton : unit -> unit
     end ;;
@@ -48,6 +50,8 @@ module HelpButton : Button  =
     struct
     let x = 4
     let y = 970
+    let width = 50
+    let height = 25
     let drawButton () = dessinerBouton x y "Help" 
     let action () = actionHelp ()
     end;;
@@ -310,20 +314,23 @@ let rec eventListener grille =
             begin
             let a = getCase st.mouse_x st.mouse_y in
             match a with
-                |(-1,-1)-> if (st.mouse_x>= Help.x) && (st.mouse_x<=Help.x+50) && (st.mouse_y>=Help.y) && (st.mouse_y<= Help.y+25) then Help.action ();
+                |(-1,-1)-> if (st.mouse_x>= Help.x) && (st.mouse_x<=Help.x+Help.width) && (st.mouse_y>=Help.y) && (st.mouse_y<= Help.y+Help.height) then Help.action ();
                 |_ -> setSelectedCase (fst a) (snd a) grille;
             end;
     afficheJeu grille;
     if checkSudokuIsComplete grille then checkGameWinOrLost grille "0" else eventListener grille
 ;;
     
+let main () =
 
-let test = Array.make_matrix 9 9 ('0',false);;
-lire_fichier "grids/grid0.txt" test;;
-lire_fichier "grids/grid0.txt" lastMove;;
+    let test = Array.make_matrix 9 9 ('0',false) in
+    lire_fichier "grids/grid0.txt" test;
+    lire_fichier "grids/grid0.txt" lastMove;
+    Graphics.open_graph " 1000x1000";
+    afficheJeu test;
+    eventListener test
 
-Graphics.open_graph " 1000x1000";;
-afficheJeu test;;
-eventListener test;;
+;;
 
+main ();;
 

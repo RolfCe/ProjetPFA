@@ -17,10 +17,10 @@ let countHelp = ref 5;;
 
 
 let afficheCountHelp  () =
-    Graphics.moveto 10 830;
+    Graphics.moveto 2 780;
     Graphics.set_color black;
     Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
-    Graphics.draw_string ( "count Help : "^( string_of_int ( !countHelp ) ) );
+    Graphics.draw_string ( "Clue left : "^( string_of_int ( !countHelp ) ) );
    
     ;;
     
@@ -224,17 +224,17 @@ let checkAnswerCurrent tab aIndex = (* Par rapport à la grille en entière  *)
     if checkGrille tab tabAnswer 
     then
         begin
-        Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
+        Graphics.set_font "-*-fixed-medium-r-semicondensed--50-*-*-*-*-*-iso8859-1";
         Graphics.set_color green;
-        Graphics.moveto 200 800;
+        Graphics.moveto 200 780;
         Graphics.draw_string "All Correct Answer(s) so far"
         end
     else
         begin
-        Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
+        Graphics.set_font "-*-fixed-medium-r-semicondensed--50-*-*-*-*-*-iso8859-1";
         Graphics.set_color red;
-        Graphics.moveto 200 800;
-        Graphics.draw_string "Incorrect Answer(s)" 
+        Graphics.moveto 200 780;
+        Graphics.draw_string "There are Incorrect Answer(s)" 
         end
 ;;
 
@@ -328,11 +328,10 @@ let rec eventListener grille =
 ;;
     
 let main () =
-
+    Graphics.resize_window 1000 1000;
     let test = Array.make_matrix 9 9 ('0',false) in
     lire_fichier "grids/grid0.txt" test;
     lire_fichier "grids/grid0.txt" lastMove;
-    Graphics.open_graph " 1000x1000";
     afficheJeu test;
     eventListener test
 
@@ -352,7 +351,7 @@ let loadGame () =
 module NewGameButton : Button =
     struct
     let x = 425
-    let y = 525
+    let y = 300
     let width = 275
     let height = 100
     let action () = main ()
@@ -361,12 +360,12 @@ module NewGameButton : Button =
 
 module LoadButton : Button =
     struct
-    let x = 425
+    let x = 412
     let y = 175
-    let width = 200
+    let width = 300
     let height = 100
     let action () = loadGame ()
-    let drawButton () = dessinerBouton x y "LOAD..." "50" 25 25 width height
+    let drawButton () = dessinerBouton x y "LOAD SAVE" "50" 50 25 width height
     end;;
 
 module NewGame = NewGameButton ;;
@@ -381,12 +380,17 @@ let rec menuEventlistener () = let st = wait_next_event [Graphics.Button_down] i
             else menuEventlistener ()
             end
             
-
+let drawTitle () = 
+	Graphics.set_color black;
+	Graphics.set_font "-*-fixed-medium-r-semicondensed--150-*-*-*-*-*-iso8859-1";
+	Graphics.moveto 200 500;
+	Graphics.draw_string "EL SUDOKU"
+;;
 
 module MenuStart : Menu =
     struct
     let eventListenerBouton () =  menuEventlistener () 
-    let affichage () = Graphics.open_graph " 1000x1000";NewGame.drawButton (); Load.drawButton () 
+    let affichage () = Graphics.open_graph " 1000x700";set_window_title "EL SUDOKU";drawTitle ();NewGame.drawButton (); Load.drawButton () 
     end;;
 
 module ElMenu = MenuStart;;

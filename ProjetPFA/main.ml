@@ -3,6 +3,7 @@ open Array
 open String
 open Button
 open Menu
+open Random
 
 (*
 les cases 80 pixel de coté
@@ -14,7 +15,8 @@ let selectedCase = ref (-1,-1);;
 let listeSudoku = ref [];;
 let lastMove = Array.make_matrix 9 9 ('0',false);; (* Juste pour initialiser *)
 let countHelp = ref 5;; 
-
+Random.self_init ();;
+let seed = ref "-1";;
 
 let afficheCountHelp  () =
     Graphics.moveto 2 780;
@@ -22,7 +24,7 @@ let afficheCountHelp  () =
     Graphics.set_font "-*-fixed-medium-r-semicondensed--25-*-*-*-*-*-iso8859-1";
     Graphics.draw_string ( "Clue left : "^( string_of_int ( !countHelp ) ) );
    
-    ;;
+;;
     
     
     
@@ -81,7 +83,7 @@ let lire_fichier fichier tab =
 
 let trace_ligneGrille () = 
     Graphics.set_color black;
-    Graphics.set_line_width 2;
+    Graphics.set_line_width 3;
     for i = 0 to 3 do
         Graphics.moveto (140+i*240) 50;
         Graphics.lineto (140+i*240) 770;
@@ -101,11 +103,21 @@ let trace_ligneGrille () =
 
 let afficheSudoku tab =
     trace_ligneGrille ();
-    Graphics.set_font "-*-fixed-medium-r-semicondensed--75-*-*-*-*-*-iso8859-1";
+    Graphics.set_font "-*-fixed-medium-r-normal--75-*-*-*-*-*-iso8859-1";
     Graphics.set_color black;
+    let grey = Graphics.rgb 105 105 105 in
     for i=0 to 8 do
         for j=0 to 8 do
-            if not (Char.equal '0' (fst tab.(i).(j))) then begin Graphics.moveto (140+j*80+25) (690-i*80); Graphics.draw_char (fst tab.(i).(j)) end;
+            if not (Char.equal '0' (fst tab.(i).(j))) 
+                then 
+                    begin 
+                        Graphics.moveto (140+j*80+25) (690-i*80); 
+                        if snd tab.(i).(j) 
+                            then 
+                                begin Graphics.set_color grey; Graphics.draw_char (fst tab.(i).(j)) end 
+                            else 
+                                begin Graphics.set_color black;Graphics.draw_char (fst tab.(i).(j)) end
+                    end;
         done
     done 
     ;;
@@ -218,9 +230,9 @@ let checkGameWinOrLost tab aIndex =
 ;;
 
 
-let checkAnswerCurrent tab aIndex = (* Par rapport à la grille en entière  *)
+let checkAnswerCurrent tab = (* Par rapport à la grille en entière  *)
     let tabAnswer = Array.make_matrix 9 9 ('0',false) in
-    lire_fichier ("solutions/solution"^aIndex^".txt") tabAnswer;
+    lire_fichier ("solutions/solution"^(!seed)^".txt") tabAnswer;
     if checkGrille tab tabAnswer 
     then
         begin
@@ -238,9 +250,9 @@ let checkAnswerCurrent tab aIndex = (* Par rapport à la grille en entière  *)
         end
 ;;
 
-let helpPlayer_addValue tab aIndex=
+let helpPlayer_addValue tab =
     let tabSoluce = Array.make_matrix 9 9 ('0',false) in
-    lire_fichier ("solutions/solution"^aIndex^".txt") tabSoluce;
+    lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
     let rec addValue x y tab tabSoluce =
         let answer = fst tab.(x).(y) in
         let soluce = fst tabSoluce.(x).(y) in
@@ -253,6 +265,11 @@ let helpPlayer_addValue tab aIndex=
     addValue 0 0 tab tabSoluce  
 ;;
 
+let giveClue_random tab =
+    let tabSoluce = Array.make_matrix 9 9 ('0',false) in
+    lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
+;;
+
 let saveSudoku grille  =
     let save = open_out "save/save.txt" in
     for i = 0 to 8 do
@@ -260,15 +277,17 @@ let saveSudoku grille  =
             Printf.fprintf save "%c" (fst grille.(i).(j));
         done;
     done;
+    Printf.fprintf save "\n%s" !seed;
     close_out save
 ;;
 
-let loadSudoku tab seed = 
-    let cSave = open_in "save/save.txt" in
-    let cin = open_in ("grids/grid"^seed^".txt") in
+let loadSudoku tab = 
     try
-        let line = input_line cin in
+        let cSave = open_in "save/save.txt" in
         let lineSave = input_line cSave in
+        seed := input_line cSave;
+        let cin = open_in ("grids/grid"^(!seed)^".txt") in
+        let line = input_line cin in
         close_in cSave;
         close_in cin;
         for i = 0 to 8 do
@@ -278,8 +297,9 @@ let loadSudoku tab seed =
                 if Char.equal '0' c then tab.(i).(j) <- (cSave,true) else tab.(i).(j) <-(c,false);
             done;
         done
+
     with
-        |e-> close_in_noerr cin;raise e
+        |e-> raise e
 ;;
 
 let saveLastMove tab =
@@ -304,10 +324,10 @@ let setValueCase tab v =
     match v with 
        |'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' when (x,y) <> (-1,-1)-> saveLastMove tab;tab.(x).(y) <- (v,true)
        |'r' -> loadLastMove tab
-       |'v'-> checkAnswerCurrent tab "0"
-       |'h' -> if !countHelp > 0 then begin  countHelp := !countHelp -1 ;  helpPlayer_addValue tab "0" end 
+       |'v'-> checkAnswerCurrent tab
+       |'h' -> if !countHelp > 0 then begin  countHelp := !countHelp -1 ;  helpPlayer_addValue tab end 
        |'s' -> saveSudoku tab
-       |'l' -> loadSudoku tab "0"
+       |'l' -> loadSudoku tab
        |_ -> ()
 ;;
 
@@ -328,23 +348,24 @@ let rec eventListener grille =
 ;;
     
 let main () =
-    Graphics.resize_window 1000 1000;
-    let test = Array.make_matrix 9 9 ('0',false) in
-    lire_fichier "grids/grid0.txt" test;
-    lire_fichier "grids/grid0.txt" lastMove;
-    afficheJeu test;
-    eventListener test
+    seed := string_of_int (Random.int 244);
+    Graphics.resize_window 1000 1000;            (*Si la résolution de l'écran est trop petite, on ne verra pas tous les éléments du jeu*)
+    let grille = Array.make_matrix 9 9 ('0',false) in
+    lire_fichier ("grids/grid"^(!seed)^".txt") grille;
+    lire_fichier ("grids/grid"^(!seed)^".txt") lastMove;
+    afficheJeu grille;
+    eventListener grille
 
 ;;
 
 let loadGame () =
-
-    let test = Array.make_matrix 9 9 ('0',false) in
-    loadSudoku test "0";
-    loadSudoku lastMove "0";
+    Graphics.resize_window 1000 1000; 
+    let grille = Array.make_matrix 9 9 ('0',false) in
+    loadSudoku grille;
+    loadSudoku lastMove;
     Graphics.open_graph " 1000x1000";
-    afficheJeu test;
-    eventListener test
+    afficheJeu grille;
+    eventListener grille
 
 ;;
 

@@ -12,6 +12,7 @@ pour centrer x+25
 
 *)
 let selectedCase = ref (-1,-1);;
+let selectedNumberHighlight = ref '0';;
 let listeSudoku = ref [];;
 let lastMove = Array.make_matrix 9 9 ('0',false);; (* Juste pour initialiser *)
 let countHelp = ref 5;; 
@@ -146,6 +147,21 @@ let getCase x y =
 let highlightCase tab =
     let x = fst !selectedCase in
     let y = snd !selectedCase in
+    let yi = (8-x)*80+50+2 in   
+    let xi = y*80+140+2 in
+    if (x,y) <> (-1,-1) then 
+        begin
+        Graphics.set_color (Graphics.rgb 0 0 0);
+        Graphics.set_line_width 5;
+        Graphics.moveto xi yi;
+        Graphics.lineto (xi+76) yi;
+        Graphics.lineto (xi+76) (yi+76);
+        Graphics.lineto xi (yi+76);
+        Graphics.lineto xi yi;
+        end;
+;;
+
+let highlightCase_v1 tab x y =
     if (x,y) <> (-1,-1) then 
         begin
         Graphics.set_color (Graphics.rgb 127 0 97);
@@ -153,12 +169,36 @@ let highlightCase tab =
         end;
 ;;
 
+exception NoNumberSelected;;
+
+let highlightAllNumber tab =
+    let x = fst !selectedCase in
+    let y = snd !selectedCase in
+    if (x,y) = (-1,-1) then () else
+    begin
+    let n = fst tab.(x).(y) in
+        if n = '0' 
+            then 
+                ()
+            else 
+                begin
+                for i = 0 to 8 do
+                    for j = 0 to 8 do
+                        if (fst tab.(i).(j)) = n then highlightCase_v1 tab i j ;
+                    done
+                done
+                end
+    end
+;;
+
 let afficheJeu tab = 
+    highlightAllNumber tab;
     highlightCase tab;
     Help.drawButton ();
     afficheCountHelp (); 
     trace_ligneGrille ();
     afficheSudoku tab;
+
 ;;
 
 let setSelectedCase x y tab =

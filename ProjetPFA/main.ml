@@ -106,7 +106,7 @@ let afficheSudoku tab =
     trace_ligneGrille ();
     Graphics.set_font "-*-fixed-medium-r-normal--75-*-*-*-*-*-iso8859-1";
     Graphics.set_color black;
-    let grey = Graphics.rgb 105 105 105 in
+    let grey = Graphics.rgb 25 25 112 in
     for i=0 to 8 do
         for j=0 to 8 do
             if not (Char.equal '0' (fst tab.(i).(j))) 
@@ -164,7 +164,7 @@ let highlightCase tab =
 let highlightCase_v1 tab x y =
     if (x,y) <> (-1,-1) then 
         begin
-        Graphics.set_color (Graphics.rgb 127 0 97);
+        Graphics.set_color (Graphics.rgb 211 211 211);
         Graphics.fill_rect (y*80+140+1) ((8-x)*80+50+1) 78 78;
         end;
 ;;

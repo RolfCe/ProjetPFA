@@ -290,6 +290,23 @@ let checkAnswerCurrent tab = (* Par rapport à la grille en entière  *)
         end
 ;;
 
+(* RandomVersion *)
+let helpPlayer_addValue tab =
+    let tabSoluce = Array.make_matrix 9 9 ('0',false) in
+    lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
+    let rec addValue tab tabSoluce =
+        let x = Random.int 8 in
+        let y = Random.int 8 in
+        let answer = fst tab.(x).(y) in
+        let soluce = fst tabSoluce.(x).(y) in
+        match x,y with
+            |_,_ when answer = '0' -> listeSudoku := tab::!listeSudoku;tab.(x).(y) <- (soluce,true)
+            |_,_ -> addValue tab tabSoluce
+    in
+    addValue tab tabSoluce  
+;;
+
+(*
 let helpPlayer_addValue tab =
     let tabSoluce = Array.make_matrix 9 9 ('0',false) in
     lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
@@ -305,6 +322,7 @@ let helpPlayer_addValue tab =
     addValue 0 0 tab tabSoluce  
 ;;
 
+*)
 let giveClue_random tab =
     let tabSoluce = Array.make_matrix 9 9 ('0',false) in
     lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
@@ -318,6 +336,7 @@ let saveSudoku grille  =
         done;
     done;
     Printf.fprintf save "\n%s" !seed;
+    Printf.fprintf save "\n%d" !countHelp;
     close_out save
 ;;
 
@@ -326,6 +345,7 @@ let loadSudoku tab =
         let cSave = open_in "save/save.txt" in
         let lineSave = input_line cSave in
         seed := input_line cSave;
+        countHelp := int_of_string (input_line cSave);
         let cin = open_in ("grids/grid"^(!seed)^".txt") in
         let line = input_line cin in
         close_in cSave;

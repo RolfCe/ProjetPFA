@@ -323,10 +323,6 @@ let helpPlayer_addValue tab =
 ;;
 
 *)
-let giveClue_random tab =
-    let tabSoluce = Array.make_matrix 9 9 ('0',false) in
-    lire_fichier ("solutions/solution"^(!seed)^".txt") tabSoluce;
-;;
 
 let saveSudoku grille  =
     let save = open_out "save/save.txt" in
@@ -378,6 +374,13 @@ let loadLastMove tab =
         done    
 ;;
 
+let restart tab =
+    seed := string_of_int (Random.int 244);
+    tab = Array.make_matrix 9 9 ('0',false) ;
+    lire_fichier ("grids/grid"^(!seed)^".txt") tab;
+    lire_fichier ("grids/grid"^(!seed)^".txt") lastMove;
+;;
+
 let setValueCase tab v =
     let x = fst !selectedCase in
     let y = snd !selectedCase in
@@ -388,6 +391,7 @@ let setValueCase tab v =
        |'h' -> if !countHelp > 0 then begin  countHelp := !countHelp -1 ;  helpPlayer_addValue tab end 
        |'s' -> saveSudoku tab
        |'l' -> loadSudoku tab
+       |'n' -> restart tab
        |_ -> ()
 ;;
 
@@ -415,7 +419,6 @@ let main () =
     lire_fichier ("grids/grid"^(!seed)^".txt") lastMove;
     afficheJeu grille;
     eventListener grille
-
 ;;
 
 let loadGame () =
